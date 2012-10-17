@@ -1,0 +1,10 @@
+#!/usr/local/bin/ruby
+# -*- coding: utf-8 -*-
+
+REPOS=ARGV[0]
+TXN=ARGV[1]
+
+svnlog=%x{svnlook log -t #{TXN} #{REPOS}}.chomp!
+
+# Do not allow empty comment
+exit 1 if svnlog.size == 0

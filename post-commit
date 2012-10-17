@@ -1,0 +1,65 @@
+#!/usr/local/bin/ruby
+# -*- coding: utf-8 -*-
+
+require 'rubygems'
+require 'mail'
+
+#==========================================================
+# customize here
+project_name = File.basename(ARGV[0])
+to_address = ["to@example.com"]
+# to_address = ["to1@example.com", "to2@example.com"]
+from_address = 'from@example.com'
+smtp_server = '192.168.0.1'
+
+redmine_url = "http://redmine.example.com"
+redmine_api_key = "XXXXXXXXXX"
+#==========================================================
+
+# read svn commit information
+REPOS=ARGV[0]
+REV=ARGV[1].to_i
+
+svnauthor=%x{svnlook author #{REPOS} -r #{REV}}.chomp!
+svndate=%x{svnlook date #{REPOS} -r #{REV}}.chomp!
+svnchanged=%x{svnlook changed #{REPOS} -r #{REV}}
+svnlog=%x{svnlook log #{REPOS} -r #{REV}}
+
+# setting for mail
+options = {
+  :address => smtp_server,
+  :port => 25
+}
+
+Mail.defaults do
+  delivery_method :smtp, options
+end
+
+mail = Mail.new do
+  from "Subversion Admin <#{from_address}>"
+  to to_address
+end
+
+mail.charset ='utf-8'
+mail.subject = "[#{project_name}]Subversion commit #{REPOS} r#{REV}"
+mail.body  =<<EndOfMail
+Subversion commit to #{REPOS}
+
+[Author] #{svnauthor}
+[Date] #{svndate}
+[New Revision] #{REV}
+
+[Log]
+#{svnlog}
+
+[Changed]
+#{svnchanged}
+EndOfMail
+
+# send e-mail in UTF-8
+mail.deliver
+
+# update redmine information
+require 'uri'
+require 'open-uri'
+open(URI.join(redmine_url, "sys/fetch_changes?key=#{redmine_api_key}"))
